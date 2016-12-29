@@ -22,64 +22,104 @@ function [circles, eyelids] = segment(eye_image)
   save_image(eye_image, 'segmented');
 end
 
+function [spline,avg] = get_splines(eye_image, line_dist,
+                                    line, mid_pt,
+                                    inner_circle, outer_circle)
+  spline = zeros(2,6);
+  avg = zeros(2);
+  for i=0:1
+    norm = [line(1,2), -line(1,1)];
+    mid_pt += i*norm*line_dist;
+    line(1,3:4) += i*norm*line_dist;
+
+    if point_circle_relation(mid_pt, outer_circle) >= 0
+      avg(1) = avg(2) = -1;
+      return;
+    end
+
+    int = line_rect_intersect(line, size(eye_image));
+
+    spline(i+1,:) = [int(1,:), int(2,:), mid_pt];
+    avg(i+1) = spline_average(eye_image, spline(i+1,:), inner_circle);
+  end
+end
+
 % boundaries -  matrix whose rows describe eyelid boundary lines
 function boundaries = find_eyelid_boundaries(eye_image, ...
                                              inner_circle, ...
                                              outer_circle)
-  eye_image = im2single(eye_image);
-  angle_accuracy = 20;
-  line_step = 10;
+  angle_accuracy = 40;
+  line_dist = 5;
+  line_step = 5;
   boundaries = [];
   angle = 0;
-  prev = -1;
-  prev_spline = [-1,-1,-1,-1,-1,-1]; % points p1, p2, mid_pt
   best_splines = [];
-  cap = 60;
+  cap = 60*4;
+  image = eye_image;
+  xxx=0;
   while angle < pi
+xxx+=1;
     dir = [cos(angle), sin(angle)];
     norm = [dir(2), -dir(1)];
     orig = inner_circle(1:2);
     line = [dir, orig];
 
     base_mid_pt = orig+4*norm;
+    yyy=1;
     while point_circle_relation(base_mid_pt, outer_circle) < 0
       k = 0;
+      zzz = 0;
       while 1
         line(1,3:4) = orig + k*norm;
         mid_pt = base_mid_pt + k*norm;
-
-        if point_circle_relation(mid_pt, outer_circle) >= 0
-          break;
+	[spline,avg] = get_splines(eye_image,line_dist,
+	                           line,mid_pt,
+	                           inner_circle,outer_circle);
+	if avg(1) == -1 || avg(2) == -1
+	  break;
         end
 
-        int = line_circle_intersect(line, outer_circle);
-        spline = [int(1,:), int(2,:), mid_pt];
-        cur = spline_average(eye_image, spline, inner_circle);
+        %if point_circle_relation(mid_pt, outer_circle) >= 0
+          %break;
+        %end
 
-        if ( prev ~= -1 )
-          diff = abs(prev-cur);
+        %int = line_circle_intersect(line, outer_circle);
+        %int = line_rect_intersect(line, size(eye_image));
+        %spline = [int(1,:), int(2,:), mid_pt];
+	if xxx == 3 && yyy==15 && zzz == 5
+	  image = plot_spline(image,spline(1,:));
+	  image = plot_spline(image,spline(2,:));
+	end
+        %cur = spline_average(eye_image, spline, inner_circle);
+
+        %if ( prev ~= -1 )
+          diff = abs(avg(1)-avg(2));
+	  if xxx == 3 && yyy==15 && zzz == 5
+            diff
+	  end
 
           % check if it belongs to top solutions
           back = size(best_splines,1);
           if back == 0
-            best_splines = [diff, prev_spline];
+            best_splines = [diff, spline(1,:)];
           elseif back < cap
-            best_splines(back+1,:) = [diff, prev_spline];
+            best_splines(back+1,:) = [diff, spline(1,:)];
           elseif diff > best_splines(back, 1)
-            best_splines(back,:) = [diff, prev_spline];
+            best_splines(back,:) = [diff, spline(1,:)];
             best_splines = sortrows(best_splines, [-1]);
           end
 
-          prev_spline = [int(1,:), int(2,:), mid_pt];
-        end
-        prev = cur;
+        %end
+	zzz += 1;
         k = k + line_step;
       end
       base_mid_pt = base_mid_pt + 4*norm;
-      prev = -1;
+      yyy+=1;
     end
     angle = angle + pi/angle_accuracy;
   end
+  figure(5);
+  imshow(image);
   n_splines = size(best_splines,1);
   if n_splines < 1
     return;
@@ -91,6 +131,46 @@ function boundaries = find_eyelid_boundaries(eye_image, ...
                                         second_spline_candidates);
   if size(idx,1) > 0 && best_splines(idx(1),1) > 0.1
     boundaries = [boundaries; splines(1,:)];
+  end
+end
+
+% line - [dir, orig]
+% rect - [height, width]
+function int = line_rect_intersect(line, rect)
+  a = line_segment_intersect(line, [1,1, 1,rect(1)]);
+  b = line_segment_intersect(line, [1,1, rect(2),1]);
+  c = line_segment_intersect(line, [rect(2),rect(1), 1,rect(1)]);
+  d = line_segment_intersect(line, [rect(2),rect(1), rect(2),1]);
+  int = [a;b;c;d];
+end
+
+% line - [dir, orig]
+% line_segment - [from, to]
+function int = line_segment_intersect(line, segment)
+  %line, segment
+  int = [];
+  % convert to normal form
+  line_norm = [line(2), -line(1)];
+  line_norm = line_norm/norm(line_norm);
+  line_c = -line_norm * line(3:4)';
+
+  segment_dir = segment(3:4)-segment(1:2);
+  segment_norm = [segment_dir(2), -segment_dir(1)];
+  segment_norm = segment_norm/norm(segment_norm);
+  segment_c = -segment_norm * segment(1:2)';
+  
+  A = [line_norm; segment_norm];
+  B = -[line_c; segment_c];
+  x = (A\B); % find intersect
+
+  if x(1) == 0 || x(2) == 0
+    return;
+  end
+  
+  diff = (norm(segment(1:2)-segment(3:4)) -
+         norm(x'-segment(1:2)) - norm(x'-segment(3:4)));
+  if ( abs(diff) < 1e-10 )
+    int = round(x');
   end
 end
 
@@ -112,11 +192,16 @@ function [splines,idx] = remove_intersecting_splines(pivot_spline, splines_)
         break;
       end
       if j == 2
-        dist = min([norm(p1-spline(1:2)),
-                    norm(p2-spline(3:4)),
-                    norm(p2-spline(1:2)),
-                    norm(p1-spline(3:4))]);
-        if dist > 40
+        a = min(norm(p1-spline(1:2)),norm(p1-spline(3:4)));
+        b = min(norm(p2-spline(1:2)),norm(p2-spline(3:4)));
+        c = norm(mid_pt-spline(5:6));
+	dist=min([a,b,c]);
+      %  dist = min([norm(p1-spline(1:2)),
+      %              norm(p2-spline(3:4)),
+      %              norm(p2-spline(1:2)),
+      %              norm(p1-spline(3:4)),
+      %              norm(mid_pt-spline(5:6))]);
+        if dist > 20
           splines = [splines; splines_(i,:)];
           idx = [idx; i];
         end
@@ -155,7 +240,7 @@ function average = spline_average(image, spline, circle_to_avoid)
       n = n + 1;
     end
   end
-  average = summ/n;
+  average = double(summ)/n;
 end
 
 function point = find_approx_eye_center(eye_image)
