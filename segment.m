@@ -12,20 +12,18 @@ function [circles, eyelids] = segment(eye_image)
   circles = [inner_circle; outer_circle];
 
   % debug
-  image = eye_image;
   for i=1:size(circles,1)
-    image = plot_circle(image, circles(i,:));
+    eye_image = plot_circle(eye_image, circles(i,:));
   end
   for i=1:size(eyelids)
-    image = plot_spline(image, eyelids(i,:));
+    eye_image = plot_spline(eye_image, eyelids(i,:));
   end
-  figure(1);
-  imshow(image);
+  figure;
+  imshow(eye_image);
 end
 
 % boundaries -  matrix whose rows describe eyelid boundary lines
-function boundaries = find_eyelid_boundaries(eye_image, inner_circle,
-                                             outer_circle)
+function boundaries = find_eyelid_boundaries(eye_image, inner_circle, outer_circle)
   angle_accuracy = 20;
   line_step = 10;
   boundaries = [];
@@ -55,7 +53,7 @@ function boundaries = find_eyelid_boundaries(eye_image, inner_circle,
         spline = [int(1,:), int(2,:), mid_pt];
         cur = spline_average(eye_image, spline, inner_circle);
 
-        if ( prev != -1 )
+        if ( prev ~= -1 )
           diff = abs(prev-cur);
 
           % check if it belongs to top solutions
@@ -80,10 +78,10 @@ function boundaries = find_eyelid_boundaries(eye_image, inner_circle,
     angle = angle + pi/angle_accuracy;
   end
   n_splines = size(best_splines,1);
-  boundaries = first_spline = best_splines(1,2:7);
+  boundaries = best_splines(1,2:7);
+  first_spline = best_splines(1,2:7);
   second_spline_candidates = best_splines(2:n_splines, 2:7);
-  [splines,idx] = remove_intersecting_splines(first_spline,
-                                        second_spline_candidates);
+  [splines,idx] = remove_intersecting_splines(first_spline, second_spline_candidates);
   if best_splines(idx(1),1) > 0.1
     boundaries = [boundaries; splines(1,:)];
   end
@@ -102,8 +100,7 @@ function [splines,idx] = remove_intersecting_splines(pivot_spline, splines_)
       from = p1-mid_pt;
       to = p2-mid_pt;
       x = p-mid_pt;
-      if (cross2d(from,x)*cross2d(from,to) <= 0
-         || cross2d(to,x)*cross2d(to,from) <= 0 )
+      if (cross2d(from,x)*cross2d(from,to) <= 0 || cross2d(to,x)*cross2d(to,from) <= 0 )
         break;
       end
       if j == 2
@@ -121,7 +118,8 @@ function [splines,idx] = remove_intersecting_splines(pivot_spline, splines_)
 end
 
 function z = cross2d(vec1, vec2)
-  z = cross([vec1,0], [vec2,0])(3);
+  z = cross([vec1,0], [vec2,0]);
+  z = z(3);
 end
 
 % point - [x, y]
@@ -138,52 +136,15 @@ function relation = point_circle_relation(point, circle)
   relation = (x-x0)^2 + (y-y0)^2 - r^2;
 end
 
-% spline - [p1, p2, mid_pt]
-function points = sample_spline(image, spline_)
-  points = [];
-  samples = 15;
-
-  p1 = spline_(1:2);
-  p2 = spline_(3:4);
-  mid_pt = spline_(5:6);
-
-  dist = sqrt(sum((p2-p1).^2));
-  dir = (p2-p1)/dist;
-  line_mid_pt = p1+dir*dist/2;
-  mid_pt_dist = sqrt(sum((mid_pt-line_mid_pt).^2));
-  norm = (mid_pt-line_mid_pt)/mid_pt_dist;
-
-  x = [0, dist, dist/2];
-  y = [0, 0, mid_pt_dist];
-  xx = 0:dist/samples:dist;
-  yy = spline(x, y, xx);
-  for i=1:size(xx,2)
-    p = round(p1+xx(i)*dir+yy(i)*norm);
-    if (p(1) > 0 && p(1) <= size(image, 2)
-       && p(2) > 0 && p(2) <= size(image, 1))
-      points = [points; p];
-    end
-  end
-end
-
-function new_image = plot_spline(image, spline)
-  new_image = image;
-  points = sample_spline(image, spline);
-  for i=1:size(points)-1
-    from = points(i,:);
-    to = points(i+1,:);
-    new_image = plot_line(new_image, [from, to]);
-  end
-end
-
 function average = spline_average(image, spline, circle_to_avoid)
   points = sample_spline(image, spline);
-  summ = n = 0;
+  summ = 0; 
+  n = 0;
   for i=1:size(points)
     p = points(i,:);
     if point_circle_relation(p, circle_to_avoid) > 0
-      summ += image(p(2), p(1));
-      n += 1;
+      summ = summ + image(p(2), p(1));
+      n = n + 1;
     end
   end
   average = summ/n;
@@ -210,61 +171,6 @@ function average = line_average(image, line)
     summ = summ + image(points(p,2), points(p,1));
   end
   average = double(summ)/n;
-end
-
-% line - [fromx, fromy, tox, toy]
-function new_image = plot_line(image, line)
-  new_image = image;
-  points = sample_line(image, line);
-  for p=1:size(points,1)
-    new_image(points(p,2), points(p,1)) = 0;
-  end
-end
-
-% line - [fromx, fromy, tox, toy]
-function points = sample_line(image, line)
-  accuracy = 50;
-  points = [];
-  from = line(1:2);
-  to = line(3:4);
-  dist = sqrt((from-to)(1)^2 + (from-to)(2)^2);
-  if ( dist == 0 )
-    return;
-  end
-
-  step_size = dist / accuracy;
-  step = (to-from) / accuracy;
-
-  if from(1) == to(1) % vertical line
-    x = from(1);
-    y = min(from(2), to(2));
-    for i=1:accuracy+1
-      tmp = y;
-      y = round(y);
-      if ( x > 0 && x <= size(image,2) &&
-           y > 0 && y <= size(image,1) )
-        points = [points; x, y];
-      end
-      y = tmp + step_size;
-    end
-    return;
-  end
-
-  k = step(2) / step(1);
-  q = from(2) - k*from(1);
-  x_step = sqrt( step_size^2 - step(2)^2 );
-
-  x=min(from(1), to(1));
-  for i=1:accuracy+1
-    y = round(k*x+q);
-    tmp = x;
-    x = round(x);
-    if ( x > 0 && x <= size(image,2) &&
-         y > 0 && y <= size(image,1) )
-      points = [points; x, y];
-    end
-    x = tmp + x_step;
-  end
 end
 
 % Finds the best candidate for an inner circle.
@@ -334,9 +240,9 @@ function circle = find_circle_in_area(eye_image, area, radius, circle_to_avoid)
         avg = circle_average(img, circle);
         diff = abs(avg-prev_avg);
 
-        if ( prev_avg == -1 || (prev_avg != -1 && diff > best_diff) )
+        if ( prev_avg == -1 || (prev_avg ~= -1 && diff > best_diff) )
           % ensure circle does not collide with another circle
-          if ( circle_to_avoid != [-1, -1, -1] )
+          if ( circle_to_avoid ~= [-1, -1, -1] )
             if ( circle_intersect(circle, circle_to_avoid) )
               prev_avg = -1;
               continue;
@@ -345,7 +251,7 @@ function circle = find_circle_in_area(eye_image, area, radius, circle_to_avoid)
         end
 
         % update best circle
-        if ( prev_avg != -1 )
+        if ( prev_avg ~= -1 )
           if ( diff > best_diff )
             best_circle = circle;
             best_diff = diff;
@@ -411,33 +317,3 @@ function intersect = circle_intersect(circle1, circle2)
   intersect = (r1-r2)^2 <= centers_distance && centers_distance <= (r1+r2)^2;
 end
 
-% image - grayscale 2D matrix image to plot into
-% circle - description of the circle [x, y, r]
-% image_result - image with the circle plotted
-function image = plot_circle(image, circle)
-  accuracy = 2; % 1 - high but slow, 10 - low but fast
-
-  x0 = circle(1);
-  y0 = circle(2);
-  r = circle(3);
-  x = -r;
-  while x<=r
-    if ( x+x0 <= 0 || x+x0 > size(image,2) )
-      continue;
-    end
-    tmp = round(sqrt(r*r-x^2));
-    y1 = tmp+y0;
-    y2 = -tmp+y0;
-
-    if ( y1 > 0 && y1 <= size(image,1) )
-      image(y1, x+x0) = 0;
-    end
-
-    if ( y2 > 0 && y2 <= size(image,1) )
-      image(y2, x+x0) = 0;
-    end
-
-    x = x + accuracy;
-  end
-  image_result = image;
-end
