@@ -2,8 +2,8 @@
 % rect - radius_samples x angle_samples matrix
 function [image, rect] = project(eye_image, circles)
   image = eye_image; % debug
-  radius_samples = 10;
-  angle_samples = 80;
+  radius_samples = 8;
+  angle_samples = 128;
   spacing = 0.02; % percentage of space between two circles to ignore
   rect = zeros(radius_samples, angle_samples);
   for i=1:angle_samples/2

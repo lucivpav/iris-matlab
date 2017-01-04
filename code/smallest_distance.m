@@ -9,6 +9,6 @@ function dist = smallest_distance(iris_code1, iris_code2, mask1, mask2)
    if cur < dist
      dist = cur;
    end
-   iris_code2 = circshift(iris_code2, 1);
+   iris_code2 = circshift(iris_code2, 2);
   end
 end

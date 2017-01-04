@@ -1,7 +1,7 @@
 % image - iris image in radial coordinates
 function iris_code = feature_extraction(image)
   features = [];
-  gabor_wavelet = gabor_wavelet_2d(39,39,5,8);
+  gabor_wavelet = gabor_wavelet_2d(39,39,1,8);
   for scale = 1:size(gabor_wavelet,1)
     for orientation = 1:size(gabor_wavelet,2)
       features = [features;
