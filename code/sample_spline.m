@@ -11,15 +11,15 @@ function points = sample_spline(image, spline_)
   dir = (p2-p1)/dist;
   line_mid_pt = p1+dir*dist/2;
   mid_pt_dist = norm(mid_pt-line_mid_pt);
-  norm = (mid_pt-line_mid_pt)/mid_pt_dist;
+  normal = (mid_pt-line_mid_pt)/mid_pt_dist;
 
   x = [0, dist, dist/2];
   y = [0, 0, mid_pt_dist];
   xx = 0:dist/samples:dist;
   yy = spline(x, y, xx);
   for i=1:size(xx,2)
-    p = round(p1+xx(i)*dir+yy(i)*norm);
-    if (p(1) > 0 && p(1) <= size(image, 2)
+    p = round(p1+xx(i)*dir+yy(i)*normal);
+    if (p(1) > 0 && p(1) <= size(image, 2) ...
        && p(2) > 0 && p(2) <= size(image, 1))
       points = [points; p];
     end

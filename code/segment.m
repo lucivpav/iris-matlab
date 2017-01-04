@@ -23,7 +23,7 @@ function [circles, eyelids] = segment(eye_image)
 end
 
 % boundaries -  matrix whose rows describe eyelid boundary lines
-function boundaries = find_eyelid_boundaries(eye_image, inner_circle,
+function boundaries = find_eyelid_boundaries(eye_image, inner_circle,...
                                              outer_circle)
   angle_accuracy = 20;
   line_step = 10;
@@ -54,7 +54,7 @@ function boundaries = find_eyelid_boundaries(eye_image, inner_circle,
         spline = [int(1,:), int(2,:), mid_pt];
         cur = spline_average(eye_image, spline, inner_circle);
 
-        if ( prev != -1 )
+        if ( prev ~= -1 )
           diff = abs(prev-cur);
 
           % check if it belongs to top solutions
@@ -79,9 +79,10 @@ function boundaries = find_eyelid_boundaries(eye_image, inner_circle,
     angle = angle + pi/angle_accuracy;
   end
   n_splines = size(best_splines,1);
-  boundaries = first_spline = best_splines(1,2:7);
+  boundaries = best_splines(1,2:7);
+  first_spline = best_splines(1,2:7);
   second_spline_candidates = best_splines(2:n_splines, 2:7);
-  [splines,idx] = remove_intersecting_splines(first_spline,
+  [splines,idx] = remove_intersecting_splines(first_spline,...
                                         second_spline_candidates);
   if best_splines(idx(1),1) > 0.1
     boundaries = [boundaries; splines(1,:)];
@@ -101,7 +102,7 @@ function [splines,idx] = remove_intersecting_splines(pivot_spline, splines_)
       from = p1-mid_pt;
       to = p2-mid_pt;
       x = p-mid_pt;
-      if (cross2d(from,x)*cross2d(from,to) <= 0
+      if (cross2d(from,x)*cross2d(from,to) <= 0 ...
          || cross2d(to,x)*cross2d(to,from) <= 0 )
         break;
       end
@@ -120,7 +121,8 @@ function [splines,idx] = remove_intersecting_splines(pivot_spline, splines_)
 end
 
 function z = cross2d(vec1, vec2)
-  z = cross([vec1,0], [vec2,0])(3);
+  z = cross([vec1,0], [vec2,0]);
+  z = z(3);
 end
 
 % point - [x, y]
@@ -139,12 +141,13 @@ end
 
 function average = spline_average(image, spline, circle_to_avoid)
   points = sample_spline(image, spline);
-  summ = n = 0;
+  summ = 0;
+  n = 0;
   for i=1:size(points)
     p = points(i,:);
     if point_circle_relation(p, circle_to_avoid) > 0
-      summ += image(p(2), p(1));
-      n += 1;
+      summ = summ + image(p(2), p(1));
+      n = n + 1;
     end
   end
   average = summ/n;
@@ -181,7 +184,7 @@ function circle = find_inner_circle(eye_image)
   img = eye_image;
   % focus search to the centre of eye image
   offset = round(0.42 * size(img)); % [height, width]
-  area = [offset(2), size(img,2)-2*offset(2),
+  area = [offset(2), size(img,2)-2*offset(2);
           offset(1), size(img,1)-2*offset(1)];
   radius = [30, 160]; % TODO
   circle_to_avoid = [-1, -1, -1];
@@ -240,9 +243,9 @@ function circle = find_circle_in_area(eye_image, area, radius, circle_to_avoid)
         avg = circle_average(img, circle);
         diff = abs(avg-prev_avg);
 
-        if ( prev_avg == -1 || (prev_avg != -1 && diff > best_diff) )
+        if ( prev_avg == -1 || (prev_avg ~= -1 && diff > best_diff) )
           % ensure circle does not collide with another circle
-          if ( circle_to_avoid != [-1, -1, -1] )
+          if ( circle_to_avoid ~= [-1, -1, -1] )
             if ( circle_intersect(circle, circle_to_avoid) )
               prev_avg = -1;
               continue;
@@ -251,7 +254,7 @@ function circle = find_circle_in_area(eye_image, area, radius, circle_to_avoid)
         end
 
         % update best circle
-        if ( prev_avg != -1 )
+        if ( prev_avg ~= -1 )
           if ( diff > best_diff )
             best_circle = circle;
             best_diff = diff;

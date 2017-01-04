@@ -4,7 +4,7 @@ function points = sample_line(image, line)
   points = [];
   from = line(1:2);
   to = line(3:4);
-  dist = sqrt((from-to)(1)^2 + (from-to)(2)^2);
+  dist = norm(from-to);
   if ( dist == 0 )
     return;
   end
@@ -18,7 +18,7 @@ function points = sample_line(image, line)
     for i=1:accuracy+1
       tmp = y;
       y = round(y);
-      if ( x > 0 && x <= size(image,2) &&
+      if ( x > 0 && x <= size(image,2) && ...
            y > 0 && y <= size(image,1) )
         points = [points; x, y];
       end
@@ -36,7 +36,7 @@ function points = sample_line(image, line)
     y = round(k*x+q);
     tmp = x;
     x = round(x);
-    if ( x > 0 && x <= size(image,2) &&
+    if ( x > 0 && x <= size(image,2) && ...
          y > 0 && y <= size(image,1) )
       points = [points; x, y];
     end

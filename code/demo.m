@@ -2,7 +2,7 @@ output_dir_root = '../results';
 output_dir1 = strcat(output_dir_root, '/image1');
 output_dir2 = strcat(output_dir_root, '/image2');
 
-rmdir(output_dir_root,'s');
+[stat, mess] = rmdir(output_dir_root,'s');
 mkdir(output_dir_root);
 mkdir(output_dir1);
 mkdir(output_dir2);

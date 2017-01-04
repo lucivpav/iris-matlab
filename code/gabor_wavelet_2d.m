@@ -29,8 +29,8 @@ function wavelet = gabor_wavelet_2d(width,height,u,v)
           y_centered = y-(height+1)/2;
           x_prime = x_centered * cos(thetav) + y_centered * sin(thetav);
           y_prime = -x_centered * sin(thetav) + y_centered * cos(thetav);
-          kernel(y,x) = ((fu^2/(pi*gamma*eta))*
-	                exp(-((alpha^2)*(x_prime^2)+
+          kernel(y,x) = ((fu^2/(pi*gamma*eta))* ...
+	                exp(-((alpha^2)*(x_prime^2)+ ...
 			(beta^2)*(y_prime^2)))*exp(1i*2*pi*fu*x_prime));
         end
       end

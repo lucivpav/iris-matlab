@@ -10,7 +10,7 @@ function generate()
   max_people = 2;
   max_images_per_person = 3;
 
-  rmdir('../results','s');
+  [stat, mess] = rmdir('../results','s');
   mkdir('../results');
   mkdir('../results/data');
 
@@ -131,7 +131,8 @@ function [iris_codes,mask_codes,n,m,images] = get_person_irises(folder)
   iris_codes = [];
   mask_codes = [];
   images = {};
-  n = m = 0;
+  n = 0;
+  m = 0;
 
   eyes = dir(folder);
   for j=3:size(eyes,1)

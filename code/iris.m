@@ -3,7 +3,6 @@ function [iris_code, mask_code] = iris(eye_file, output_dir)
   global CUR_DIR;
   CUR_DIR = output_dir;
 
-  pkg load image;
   eye_image = im2single(imread(eye_file));
   [circles, eyelids] = segment(eye_image);
   save(strcat(CUR_DIR, '/', 'segment.mat'), 'circles', 'eyelids');
