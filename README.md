@@ -2,13 +2,15 @@
 Biometric iris authentication (demo)
 
 ## Requirements
-* GNU Octave
+* **GNU Octave** or **Matlab**
+* **CASIA-Iris-Interval** dataset
 
 ## Instructions
 * Create a folder **dataset**
 * Copy content of **CASIA-Iris-Interval** into **dataset** folder
 
 ## Examples
+Note for **GNU Octave** users: please import **image** package before running the examples.
 ### Iris comparison
 ```bash
 $ cd code
