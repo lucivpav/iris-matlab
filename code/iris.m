@@ -17,6 +17,6 @@ function [iris_code, mask_code] = iris(eye_file, output_dir)
   mask_image = mask(eye_image, circles, eyelids);
   [image, mask_rect] = project(mask_image, circles);
   save_image(image, 'mask_project');
-  mask_code = feature_extraction(mask_rect);
+  mask_code = adjust_mask(mask_rect, size(iris_code,1));
   save_image(mask_code, 'mask_code');
 end
