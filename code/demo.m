@@ -8,7 +8,7 @@ mkdir(output_dir1);
 mkdir(output_dir2);
 
 image1 = '../dataset/001/L/S1001L01.jpg';
-image2 = '../dataset/002/L/S1002L02r.jpg';
+image2 = '../dataset/001/L/S1001L02.jpg';
 
 [iris1, mask1] = iris(image1, output_dir1);
 [iris2, mask2] = iris(image2, output_dir2);
