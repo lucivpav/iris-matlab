@@ -81,6 +81,9 @@ function boundaries = find_eyelid_boundaries(eye_image, ...
     angle = angle + pi/angle_accuracy;
   end
   n_splines = size(best_splines,1);
+  if n_splines < 1
+    return;
+  end
   boundaries = best_splines(1,2:7);
   first_spline = best_splines(1,2:7);
   second_spline_candidates = best_splines(2:n_splines, 2:7);
@@ -145,37 +148,56 @@ function average = spline_average(image, spline, circle_to_avoid)
   points = sample_spline(image, spline);
   summ = 0;
   n = 0;
-  for i=1:size(points)
+  for i=1:size(points,1)
     p = points(i,:);
     if point_circle_relation(p, circle_to_avoid) > 0
-      summ = summ + image(p(2), p(1));
+      summ = summ + double(image(p(2), p(1)));
       n = n + 1;
     end
   end
   average = summ/n;
 end
 
-% line - [fromx, fromy, tox, toy]
-function average = line_average(image, line)
-  points = sample_line(image, line);
-  summ = 0;
-  n = size(points,1);
+function point = find_approx_eye_center(eye_image)
+  c1 = find_eye_center_candidate(eye_image);
+  center_plot = plot_circle(eye_image, [c1, 7]);
+  save_image(center_plot, 'eye_center_candidate1');
 
-  % calc median
-  values = [];
-  for p=1:n
-    values = [values; image(points(p,2), points(p,1))];
+  c2 = find_eye_center_candidate(rot90(eye_image, 2));
+  n = size(eye_image, 1);
+  m = size(eye_image, 2);
+  c2(1) = m-c2(1);
+  c2(2) = n-c2(2);
+  center_plot = plot_circle(eye_image, [c2, 7]);
+  save_image(center_plot, 'eye_center_candidate2');
+
+  dir = c2-c1;
+  len = norm(dir);
+  dir = dir / len;
+  point = round(c1 + dir*(len/2));
+end
+
+function point = find_eye_center_candidate(eye_image)
+  n = size(eye_image,1);
+  m = size(eye_image,2);
+  offset = 50;
+  thresh = 60;
+  l = 3;
+  best = Inf;
+  for y=1+offset:n-offset
+    for x=1+offset:m-offset
+      xfrom = max(1, x-l);
+      yfrom = max(1, y-l);
+      xto = min(m, x+l);
+      yto = min(n, y+l);
+      cur = sum(sum(eye_image(yfrom:yto, xfrom:xto))) / (2*l+1)^2;
+      if cur < thresh
+        point = [x y];
+        best = cur;
+        return;
+      end
+    end
   end
-
-  values = sort(values);
-  average = values(floor(size(values,1)/2)+1);
-  return;
-
-  % alternative: calc average
-  for p=1:n
-    summ = summ + image(points(p,2), points(p,1));
-  end
-  average = double(summ)/n;
 end
 
 % Finds the best candidate for an inner circle.
@@ -186,12 +208,12 @@ function circle = find_inner_circle(eye_image)
   edge_image = edge(eye_image, 'Canny', 2.5);
   save_image(edge_image, 'inner_circle_input')
   % focus search to the centre of eye image
-  % TODO: decide search region in a more clever way
-  %       currently region too big -> slow
-  offset = round(0.38 * size(edge_image)); % [height, width]
-  area = [offset(2), size(edge_image,2)-2*offset(2);
-          offset(1), size(edge_image,1)-2*offset(1)];
-  radius = [40, 70]; % TODO
+  l = 20;
+  center = find_approx_eye_center(eye_image);
+  center_plot = plot_circle(eye_image, [center, l]);
+  save_image(center_plot, 'approx_eye_center');
+  area = [center(1,1)-l/2, l; center(1,2)-l/2, l];
+  radius = [30, 70]; % TODO
   circle_to_avoid = [-1, -1, -1];
   circle = find_circle_in_area(edge_image, area, radius, circle_to_avoid);
   circle(3) = circle(3) + 1;
@@ -223,13 +245,14 @@ function circle = find_outer_circle(eye_image, inner_circle)
   angle_step = 2*pi/angle_steps;
   step = 7;
   thresh = 10;
+  min_r = inner_circle(3)+40;
   points = [];
 
   orig = inner_circle(1:2);
   for i=1:angle_steps
     prev = -1;
     dir = [cos(i*angle_step) sin(i*angle_step)];
-    pos = round(orig + (inner_circle(3)+10)*dir);
+    pos = round(orig + (min_r-10)*dir);
     while 1
       if ( pos(1) < 1 || pos(2) < 1 || ...
            pos(1) > size(eye_image,2) || ...
@@ -258,8 +281,8 @@ function circle = find_outer_circle(eye_image, inner_circle)
     edge_image(points(i,2),points(i,1)) = 1;
     % point clouds
     t = 1;
-    fromx = max(0,p(1)-t);
-    fromy = max(0,p(2)-t);
+    fromx = max(1,p(1)-t);
+    fromy = max(1,p(2)-t);
     tox = min(M,p(1)+t);
     toy = min(N,p(2)+t);
     edge_image(fromy:toy,fromx:tox) = 1;
@@ -270,7 +293,7 @@ function circle = find_outer_circle(eye_image, inner_circle)
   area = [inner_circle(1)-offset(2), 2*offset(2),
           inner_circle(2)-offset(1), 2*offset(1)];
   % TODO: r might be up to 10x
-  radius = [40+inner_circle(3), 3*inner_circle(3)];
+  radius = [min_r, 3*inner_circle(3)];
   circle = find_circle_in_area(edge_image, area, radius, inner_circle);
   circle(3) = circle(3) - 1;
 
