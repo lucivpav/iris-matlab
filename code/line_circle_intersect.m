@@ -10,12 +10,12 @@ function points = line_circle_intersect(line, circle)
     y_pow2 = r*r-(x-x0)^2;
     if ( y_pow2 == 0 )
       y = round(sqrt(y_pow2))+y0;
-      points = [x, y];
+      points = round([x, y]);
     elseif ( y_pow2 > 0 )
       tmp = round(sqrt(y_pow2));
       y1 = tmp+y0;
       y2 = -tmp+y0;
-      points = [x, y1; x, y2];
+      points = round([x, y1; x, y2]);
     end
     return;
   end
@@ -33,7 +33,7 @@ function points = line_circle_intersect(line, circle)
   if ( D == 0 )
     x = -b/(2*a);
     y = k*x+q;
-    points = [x, y];
+    points = round([x, y]);
   elseif ( D > 0 )
     x1 = ( -b + sqrt(D) ) / (2*a);
     x2 = ( -b - sqrt(D) ) / (2*a);

@@ -1,31 +1,13 @@
 % image - grayscale 2D matrix image to plot into
 % circle - description of the circle [x, y, r]
 % image_result - image with the circle plotted
-function image = plot_circle(image, circle)
-  color = 0.3;
-  accuracy = 2; % 1 - high but slow, 10 - low but fast
-
-  x0 = circle(1);
-  y0 = circle(2);
-  r = circle(3);
-  x = -r;
-  while x<=r
-    if ( x+x0 <= 0 || x+x0 > size(image,2) )
-      continue;
-    end
-    tmp = round(sqrt(r*r-x^2));
-    y1 = tmp+y0;
-    y2 = -tmp+y0;
-
-    if ( y1 > 0 && y1 <= size(image,1) )
-      image(y1, x+x0) = color;
-    end
-
-    if ( y2 > 0 && y2 <= size(image,1) )
-      image(y2, x+x0) = color;
-    end
-
-    x = x + accuracy;
-  end
+function image_result = plot_circle(image, circle)
   image_result = image;
+  points = sample_circle(image, circle);
+  n = size(points,1);
+  for i=1:n-1
+    image_result = plot_line(image_result, [points(i,:) points(i+1,:)]);
+    i = i+1;
+  end
+  image_result = plot_line(image_result, [points(1,:) points(n,:)]);
 end

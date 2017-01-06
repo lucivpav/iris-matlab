@@ -22,9 +22,9 @@ function [image, rect] = project(eye_image, circles)
         r_diff = r_diff - r_diff*spacing;
         r = circles(1,3) + r_diff*spacing/2;
         r = r + (j-1)*r_diff/(radius_samples-1);
-        y_from = round(r*sin(angle+k*pi))+orig(2);
-        x_from = round(r*cos(angle+k*pi))+orig(1);
-        x = i+k*angle_samples/2;
+        y_from = round(r*sin(angle+k*pi)+orig(2));
+        x_from = round(r*cos(angle+k*pi)+orig(1));
+        x = round(i+k*angle_samples/2);
         rect(j,x) = eye_image(y_from, x_from);
         image(y_from,x_from) = 0; % debug
       end
