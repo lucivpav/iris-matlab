@@ -16,7 +16,8 @@ function mask_image = mask(eye_image, circles, eyelids)
       spline_point = points(k,:);
 
       % check whether point inside of eyelid boundaries
-      if ( norm(point-center) > norm(spline_point-center) )
+      if ( norm(point-center) > norm(spline_point-center) && ...
+           norm(point-spline_point) < norm(point-center) )
         mask_image(i,j) = 0;
       else
         mask_image(i,j) = 255;
