@@ -10,7 +10,6 @@ Biometric iris authentication (demo)
 * Copy content of **CASIA-Iris-Interval** into **dataset** folder
 
 ## Examples
-Note for **GNU Octave** users: please import **image** package before running the examples.
 ### Iris comparison
 ```bash
 $ cd code
