@@ -1,6 +1,16 @@
 # iris-matlab
 Biometric iris authentication (demo)
 
+## Status
+<table>
+<tr>
+<th>Tests</th><th>TP</th><th>FP</th><th>TN</th><th>FN</th><th>Precision</th><th>Recall</th><th>Accuracy</th>
+</tr>
+<tr>
+<td>44</td><td>4</td><td>0</td><td>36</td><td>4</td><td>0.10</td><td>0.50</td><td>0.91</td>
+</tr>
+</table>
+
 ## Requirements
 * **GNU Octave** or **Matlab**
 * **CASIA-Iris-Interval** dataset
