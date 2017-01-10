@@ -2,7 +2,7 @@ function test()
   generate();
   same_person();
   different_person();
-  evaluate();
+  evaluate(0.43);
 end
 
 % generates iris and mask codes from dataset
@@ -155,6 +155,20 @@ function [iris_codes,mask_codes,n,m,images] = get_person_irises(folder)
 end
 
 % evaluates test results
-function evaluate()
-  % TODO
+function evaluate(thresh)
+  same = dlmread('../results/same_person.txt',' ', R1=0, C1=2);
+  diff = dlmread('../results/different_person.txt',' ', R1=0, C1=2);
+  cnt = size(same,1) + size(diff,1);
+  tp = sum(same < thresh);
+  fp = sum(diff < thresh);
+  tn = sum(diff > thresh);
+  fn = sum(same > thresh);
+  precision = tp / (tp+tn);
+  recall = tp / (tp+fn);
+  accuracy = (tp+tn) / cnt;
+  fileID = fopen('../results/statistics.txt','w');
+  fprintf(fileID, 'cnt TP FP TN FN precision recall accuracy\n');
+  fprintf(fileID, '%d %d %d %d %d ', cnt, tp, fp, tn, fn);
+  fprintf(fileID, '%.2f %.2f %.2f\n', precision, recall, accuracy);
+  fclose(fileID);
 end
