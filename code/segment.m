@@ -56,47 +56,27 @@ function boundaries = find_eyelid_boundaries(eye_image, ...
   best_splines = [];
   cap = 60*4;
   image = eye_image;
-  xxx=0;
-  while angle < pi
-xxx+=1;
-    dir = [cos(angle), sin(angle)];
-    norm = [dir(2), -dir(1)];
-    orig = inner_circle(1:2);
-    line = [dir, orig];
+  while angle < 2*pi
+    for i=0:1 % try different starting point
+      dir = [cos(angle), sin(angle)];
+      norm = [dir(2), -dir(1)];
+      orig = inner_circle(1:2) + i*round(line_step/2)*norm;
+      line = [dir, orig];
 
-    base_mid_pt = orig+4*norm;
-    yyy=1;
-    while point_circle_relation(base_mid_pt, outer_circle) < 0
-      k = 0;
-      zzz = 0;
-      while 1
-        line(1,3:4) = orig + k*norm;
-        mid_pt = base_mid_pt + k*norm;
-	[spline,avg] = get_splines(eye_image,line_dist,
-	                           line,mid_pt,
-	                           inner_circle,outer_circle);
-	if avg(1) == -1 || avg(2) == -1
-	  break;
-        end
+      base_mid_pt = orig+4*norm;
+      while point_circle_relation(base_mid_pt, outer_circle) < 0
+        k = 0;
+        while 1
+          line(1,3:4) = orig + k*norm;
+          mid_pt = base_mid_pt + k*norm;
+          [spline,avg] = get_splines(eye_image, line_dist, ...
+                                     line, mid_pt, ...
+                                     inner_circle, outer_circle);
+          if avg(1) == -1 || avg(2) == -1
+            break;
+          end
 
-        %if point_circle_relation(mid_pt, outer_circle) >= 0
-          %break;
-        %end
-
-        %int = line_circle_intersect(line, outer_circle);
-        %int = line_rect_intersect(line, size(eye_image));
-        %spline = [int(1,:), int(2,:), mid_pt];
-	if xxx == 3 && yyy==15 && zzz == 5
-	  image = plot_spline(image,spline(1,:));
-	  image = plot_spline(image,spline(2,:));
-	end
-        %cur = spline_average(eye_image, spline, inner_circle);
-
-        %if ( prev ~= -1 )
           diff = abs(avg(1)-avg(2));
-	  if xxx == 3 && yyy==15 && zzz == 5
-            diff
-	  end
 
           % check if it belongs to top solutions
           back = size(best_splines,1);
@@ -109,17 +89,13 @@ xxx+=1;
             best_splines = sortrows(best_splines, [-1]);
           end
 
-        %end
-	zzz += 1;
-        k = k + line_step;
+          k = k + line_step;
+        end
+        base_mid_pt = base_mid_pt + 4*norm;
       end
-      base_mid_pt = base_mid_pt + 4*norm;
-      yyy+=1;
     end
     angle = angle + pi/angle_accuracy;
   end
-  figure(5);
-  imshow(image);
   n_splines = size(best_splines,1);
   if n_splines < 1
     return;
@@ -129,7 +105,7 @@ xxx+=1;
   second_spline_candidates = best_splines(2:n_splines, 2:7);
   [splines,idx] = remove_intersecting_splines(first_spline, ...
                                         second_spline_candidates);
-  if size(idx,1) > 0 && best_splines(idx(1),1) > 0.1
+  if size(idx,1) > 0 && best_splines(idx(1),1) > 30 % TODO: not robust
     boundaries = [boundaries; splines(1,:)];
   end
 end
@@ -195,7 +171,7 @@ function [splines,idx] = remove_intersecting_splines(pivot_spline, splines_)
         a = min(norm(p1-spline(1:2)),norm(p1-spline(3:4)));
         b = min(norm(p2-spline(1:2)),norm(p2-spline(3:4)));
         c = norm(mid_pt-spline(5:6));
-	dist=min([a,b,c]);
+	      dist=min([a,b,c]);
       %  dist = min([norm(p1-spline(1:2)),
       %              norm(p2-spline(3:4)),
       %              norm(p2-spline(1:2)),
